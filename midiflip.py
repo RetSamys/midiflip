@@ -20,6 +20,9 @@ except:
 midi=f.read()
 writeme="".join(midi.split("MTrk")[0]) #final string to be written into new file
 for i in midi.split("MTrk")[1:]: #skip header chunk and jump directly into track chunk
+    print "Editing Track "+str(midi.split("MTrk").index(i))+" of "+str(len(midi.split("MTrk"))-1)
+    lowcount=0
+    highcount=0
     i=list(i) #split string into list of characters
     delta=True #default value for checking delta_time
     offset=0 #default value for flipping pitch according to last event - since there is no such event at the beginning of a track
@@ -37,24 +40,38 @@ for i in midi.split("MTrk")[1:]: #skip header chunk and jump directly into track
                 except NameError:
                     pass
                 lastnote=i[4:][byte] #set current note to compare to next note before it's changed!
-                i[byte+4]=chr(ord(i[4:][byte])+offset) #change note
+                try:i[byte+4]=chr(ord(i[4:][byte])+offset) #change note
+                except:
+                    if ord(i[4:][byte])+offset>127:
+                        i[byte+4]=chr(127)
+                        highcount+=1
+                    else:
+                        i[byte+4]=chr(0)
+                        lowcount+=1
                 #journey to note off starts here
                 for offbyte in range(len(i[byte+4:])):
-                    #if i[byte+4:][offbyte]==i[4:][byte-1] and i[byte+4:][offbyte+1]==lastnote: #check the same channel if the same note is off
                     if ord(i[byte+4:][offbyte])>=128 and ord(i[byte+4:][offbyte])<=137 and i[byte+4:][offbyte+1]==lastnote: #check if the same note is off
-                        i[byte+4+offbyte+1]=chr(ord(i[byte+4:][offbyte+1])+offset) #change note
+                        try:i[byte+4+offbyte+1]=chr(ord(i[byte+4:][offbyte+1])+offset) #change note
+                        except:
+                            if ord(i[4:][byte])+offset>127:
+                                i[byte+4]=chr(127)
+                            else:
+                                i[byte+4]=chr(0)
                         changecounter+=1
                         break
                     elif ord(i[byte+4:][offbyte])==123: #all notes off
                         changecounter+=1
                         break
                     elif ord(i[byte+4:][offbyte])>=160 and ord(i[byte+4:][offbyte])<=175 and i[byte+4:][offbyte+1]==lastnote: #polyphonic aftertouch - just in case? Urgh, I don't actually understand this enough, when is this activated and is there a way to deactivate!?!?
-                        i[offbyte+5]=chr(ord(i[byte+4:][offbyte+1])+offset) #change note
+                        try:i[offbyte+1+byte+4]=chr(ord(i[byte+4:][offbyte+1])+offset) #change note
+                        except:
+                            i[offbyte+1+byte+4]=chr(127)
                     else:
                         pass
                 byte+=1 #skip velocity byte
             else:
                 pass
+    if lowcount or highcount:print "WARNING: There were notes out of range: "+str(lowcount)+" too low and "+str(highcount)+" too high."
     writeme=writeme+"MTrk"+"".join(i) #join list of characters to final string
 counter=1
 path=path.replace(".mid","")
