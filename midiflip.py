@@ -8,8 +8,6 @@ print """Welcome to my horribly inefficient program to tonal invert MIDI files a
 """
 pth=raw_input("Please enter your MIDI file's path here (save the file in the same directory as this program if you want to avoid typing the entire path): ")
 if pth!="":path=pth
-print "Program running"
-print "You may abort any time by hitting CTRL+C"
 try:
     f=open(path,"rb")
 except:
@@ -17,6 +15,10 @@ except:
         f=open(path+".mid","rb")
     except:
         print "Sorry, but are you sure this is where the file is?"
+cset=raw_input("As a standard setting, this program will flip all notes around C', which will flip the 'hands'. To use this mode press enter. You can use the old mode, which keeps the 'hands' where they are, but also creates a whole bunch of errors, by entering anything at all: ")
+print "Program running"
+print "You may abort any time by hitting CTRL+C"
+
 midi=f.read()
 writeme="".join(midi.split("MTrk")[0]) #final string to be written into new file
 for i in midi.split("MTrk")[1:]: #skip header chunk and jump directly into track chunk
@@ -35,10 +37,14 @@ for i in midi.split("MTrk")[1:]: #skip header chunk and jump directly into track
         else: #event checking mode
             if ord(i[4:][byte])>=144 and ord(i[4:][byte])<=159: #check for note on event
                 byte+=1 #go to note byte
-                try: #skipped if lastnote is not defined
-                    offset+=(ord(lastnote)-ord(i[4:][byte]))*2 #calculate offset
-                except NameError:
-                    pass
+                if cset=="":
+                    offset=(60-ord(i[4:][byte]))*2 #calculate offset to c'
+                else:
+                    try: #skipped if lastnote is not defined
+                         offset+=(ord(lastnote)-ord(i[4:][byte]))*2 #calculate offset
+                    except NameError:
+                        pass
+
                 lastnote=i[4:][byte] #set current note to compare to next note before it's changed!
                 try:i[byte+4]=chr(ord(i[4:][byte])+offset) #change note
                 except:
