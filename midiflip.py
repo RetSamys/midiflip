@@ -35,7 +35,9 @@ for i in midi.split("MTrk")[1:]: #skip header chunk and jump directly into track
             else:
                 pass
         else: #event checking mode
-            if ord(i[4:][byte])>=144 and ord(i[4:][byte])<=159: #check for note on event
+            if ord(i[4:][byte])==255 and ord(i[4:][byte+1])==81 and ord(i[4:][byte+2])==3: #check for set tempo meta-event
+                byte+=5 #skip set tempo meta-event
+            elif ord(i[4:][byte])>=144 and ord(i[4:][byte])<=159: #check for note on event
                 byte+=1 #go to note byte
                 if cset=="":
                     offset=(60-ord(i[4:][byte]))*2 #calculate offset to c'
@@ -56,7 +58,9 @@ for i in midi.split("MTrk")[1:]: #skip header chunk and jump directly into track
                         lowcount+=1
                 #journey to note off starts here
                 for offbyte in range(len(i[byte+4:])):
-                    if ord(i[byte+4:][offbyte])>=128 and ord(i[byte+4:][offbyte])<=137 and i[byte+4:][offbyte+1]==lastnote: #check if the same note is off
+                    if ord(i[byte+4:][offbyte])==255 and ord(i[byte+4:][offbyte+1])==81 and ord(i[byte+4:][offbyte+1])==3: #check for set tempo meta-event
+                        offbyte+=5 #skip set tempo meta-event
+                    elif ord(i[byte+4:][offbyte])>=128 and ord(i[byte+4:][offbyte])<=137 and i[byte+4:][offbyte+1]==lastnote: #check if the same note is off
                         try:i[byte+4+offbyte+1]=chr(ord(i[byte+4:][offbyte+1])+offset) #change note
                         except:
                             if ord(i[4:][byte])+offset>127:
